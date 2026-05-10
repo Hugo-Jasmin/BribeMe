@@ -1,36 +1,39 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# BribeMe
 
-## Getting Started
+Local Next.js demo backend for QR-based restaurant UGC reward campaigns.
 
-First, run the development server:
+## Run
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The app runs at [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Environment
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+`.env` is git-ignored and should contain:
 
-## Learn More
+```bash
+OPENROUTER_API_KEY=...
+OPENROUTER_MODEL=google/gemini-3-flash-preview
+```
 
-To learn more about Next.js, take a look at the following resources:
+## Backend Flow
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. Create a campaign with `POST /api/campaigns`.
+2. Submit an image with `POST /api/submissions` as multipart form data.
+3. The backend stores media under `data/uploads`, asks OpenRouter to validate the image against the challenge, and stores the scores.
+4. Approved submissions receive a one-time reward code and create a draft social post caption.
+5. The owner can approve the draft post locally.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Useful Commands
 
-## Deploy on Vercel
+```bash
+npm run test
+npm run build
+npm run verify:llm
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+`npm run verify:llm` creates a local PNG fixture and calls OpenRouter against it.

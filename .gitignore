@@ -24,6 +24,11 @@
 .DS_Store
 *.pem
 
+# local demo runtime data
+/data/*.sqlite
+/data/*.sqlite-*
+/data/uploads/
+
 # debug
 npm-debug.log*
 yarn-debug.log*
