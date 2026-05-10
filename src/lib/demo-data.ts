@@ -1,6 +1,4 @@
-import fs from "node:fs";
 import path from "node:path";
-import { getUploadsDir } from "@/lib/config";
 import { demoScenarios } from "@/lib/demo-scenarios";
 import {
   createCampaign,
@@ -83,12 +81,11 @@ function createSeedCampaigns(venueId: string) {
 function seedSubmissions(venue: Venue, campaigns: Campaign[]) {
   for (const [index, scenario] of demoScenarios.entries()) {
     const campaign = campaigns[index % campaigns.length];
-    const mediaPath = copyDemoMedia(scenario.image, scenario.id);
     const submission = createSubmission({
       campaignId: campaign.id,
       venueId: venue.id,
       patronName: scenario.patron,
-      mediaPath,
+      mediaPath: scenario.image,
       mediaMime: "image/png",
       mediaType: "image",
       originalFilename: path.basename(scenario.image),
@@ -136,17 +133,6 @@ function seedSubmissions(venue: Venue, campaigns: Campaign[]) {
       });
     }
   }
-}
-
-function copyDemoMedia(publicPath: string, id: string) {
-  const filename = `${id}.png`;
-  const relativePath = path.join("image", filename);
-  const target = path.join(getUploadsDir(), relativePath);
-  if (fs.existsSync(target)) return relativePath;
-
-  fs.mkdirSync(path.dirname(target), { recursive: true });
-  fs.copyFileSync(path.join(process.cwd(), "public", publicPath), target);
-  return relativePath;
 }
 
 function daysFromNow(days: number) {
