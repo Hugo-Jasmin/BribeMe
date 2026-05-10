@@ -158,3 +158,24 @@ export const demoScenarios: DemoScenario[] = [
 export function getScenario(id: string) {
   return demoScenarios.find((scenario) => scenario.id === id) ?? demoScenarios[0];
 }
+
+const demoMediaPathMap = new Map(
+  demoScenarios.flatMap((scenario) => {
+    const extension = scenario.image.split(".").pop() ?? "png";
+    const publicFilename = scenario.image.split("/").pop();
+    const paths: Array<[string, string]> = [[`image/${scenario.id}.${extension}`, scenario.image]];
+
+    if (publicFilename) {
+      paths.push([`image/${publicFilename}`, scenario.image]);
+    }
+
+    return paths;
+  }),
+);
+
+export function getDemoPublicPathForStoredMedia(mediaPath: string) {
+  const normalized = mediaPath.replaceAll("\\", "/");
+  if (normalized.startsWith("/demo/")) return normalized;
+
+  return demoMediaPathMap.get(normalized) ?? null;
+}

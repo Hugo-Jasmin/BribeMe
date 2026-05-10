@@ -1,4 +1,5 @@
 import { getSubmission } from "@/lib/repositories";
+import { getDemoPublicPathForStoredMedia } from "@/lib/demo-scenarios";
 import { errorJson, json } from "@/lib/http";
 import { readStoredMedia } from "@/lib/media";
 
@@ -12,6 +13,11 @@ export async function GET(
     const { id } = await params;
     const submission = getSubmission(id);
     if (!submission) return json({ error: "Submission not found" }, { status: 404 });
+
+    const demoPublicPath = getDemoPublicPathForStoredMedia(submission.mediaPath);
+    if (demoPublicPath) {
+      return Response.redirect(new URL(demoPublicPath, _request.url), 307);
+    }
 
     const media = await readStoredMedia(submission.mediaPath);
     return new Response(media, {
