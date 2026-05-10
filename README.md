@@ -1,4 +1,4 @@
-# BribeMe
+# BribeMe updated 5/10/26/4.51 by Hugo, hosting attempt
 
 Local Next.js demo backend for QR-based restaurant UGC reward campaigns.
 
