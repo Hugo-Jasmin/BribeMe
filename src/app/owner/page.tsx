@@ -1,6 +1,6 @@
 import { BarChart3, ClipboardCheck, Gift, QrCode } from "lucide-react";
 import Link from "next/link";
-import { AppCard, formatStatus, LinkButton, Metric, PageShell, PhotoPreview, Status } from "@/components/bribeme/ui";
+import { AppCard, formatStatus, LinkButton, Metric, PageShell, PhotoPreview, Status } from "@/components/bribe/ui";
 import {
   Table,
   TableBody,
@@ -15,10 +15,13 @@ import { countIssuedRewards, listRewards, listSocialPosts } from "@/lib/reposito
 
 export const dynamic = "force-dynamic";
 
-export default function OwnerDashboardPage() {
-  const { venue, campaigns, submissions } = ensureDemoData();
-  const rewards = listRewards({ venueId: venue.id });
-  const socialPosts = listSocialPosts({ venueId: venue.id });
+export default async function OwnerDashboardPage() {
+  const { venue, campaigns, submissions } = await ensureDemoData();
+  const [rewards, socialPosts, issuedRewardsByCampaign] = await Promise.all([
+    listRewards({ venueId: venue.id }),
+    listSocialPosts({ venueId: venue.id }),
+    Promise.all(campaigns.map((campaign) => countIssuedRewards(campaign.id))),
+  ]);
   const pendingPosts = socialPosts.filter((post) => post.status === "draft").length;
   const activeCampaigns = campaigns.filter((campaign) => campaign.status === "active");
   const issued = rewards.filter((reward) => reward.status !== "void").length;
@@ -29,11 +32,6 @@ export default function OwnerDashboardPage() {
       role="owner"
       title={`${venue.name} owner dashboard`}
       description="Campaign health, pending approvals, issued rewards, and budget usage from the local backend."
-      actions={
-        <LinkButton href="/owner/approvals" variant="default">
-          <ClipboardCheck /> Review posts
-        </LinkButton>
-      }
     >
       <div className="grid gap-5">
         <div className="grid gap-3 md:grid-cols-4">
@@ -57,8 +55,8 @@ export default function OwnerDashboardPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {campaigns.map((campaign) => {
-                  const campaignRewards = countIssuedRewards(campaign.id);
+                {campaigns.map((campaign, index) => {
+                  const campaignRewards = issuedRewardsByCampaign[index];
                   const campaignHref = `/owner/campaigns/${campaign.id}`;
 
                   return (
@@ -106,7 +104,7 @@ export default function OwnerDashboardPage() {
             </div>
           </AppCard>
         </div>
-        <AppCard description="Recent uploads stored in the local database and served by the media endpoint." icon={<ClipboardCheck />} title="Recent submissions">
+        <AppCard description="Recent uploads stored in Turso and served by the media endpoint." icon={<ClipboardCheck />} title="Recent submissions">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
             {submissions.slice(0, 10).map((submission) => (
               <div className="space-y-2" key={submission.id}>

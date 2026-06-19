@@ -6,7 +6,7 @@ import {
   OwnerMobileNavigation,
   OwnerSidebar,
   type OwnerNavigationData,
-} from "@/components/bribeme/owner-navigation";
+} from "@/components/bribe/owner-navigation";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -28,7 +28,7 @@ export const staffLinks = [
   ["/staff/campaigns", "Active campaigns"],
 ] as const;
 
-export function PageShell({
+export async function PageShell({
   title,
   description,
   children,
@@ -47,7 +47,7 @@ export function PageShell({
         <div className="mx-auto flex min-h-screen w-full max-w-[430px] flex-col border-x bg-background shadow-sm">
           <header className="border-b bg-card px-4 py-5">
             <Link className="text-sm text-muted-foreground hover:text-foreground" href="/">
-              BribeMe
+              Bribe
             </Link>
             <h1 className="mt-3 text-3xl font-semibold tracking-tight">{title}</h1>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">{description}</p>
@@ -64,9 +64,6 @@ export function PageShell({
       <main className="min-h-screen bg-background text-foreground">
         <div className="mx-auto grid w-full max-w-4xl gap-6 px-6 py-8">
           <header className="space-y-3">
-            <Link className="text-sm text-muted-foreground hover:text-foreground" href="/">
-              BribeMe
-            </Link>
             <h1 className="max-w-3xl text-4xl font-semibold tracking-tight">{title}</h1>
             <p className="max-w-2xl text-muted-foreground">{description}</p>
             {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}
@@ -80,7 +77,7 @@ export function PageShell({
   const maxWidth = role === "staff" ? "max-w-5xl" : "max-w-7xl";
 
   if (role === "owner") {
-    const ownerNavigationData = getOwnerNavigationData();
+    const ownerNavigationData = await getOwnerNavigationData();
 
     return (
       <main className="min-h-screen bg-background text-foreground lg:grid lg:grid-cols-[248px_minmax(0,1fr)]">
@@ -112,7 +109,7 @@ export function PageShell({
         <div className={`mx-auto grid w-full ${maxWidth} gap-5 px-6 py-6 lg:grid-cols-[1fr_auto] lg:items-end`}>
           <div className="space-y-2">
             <Link className="text-sm text-muted-foreground hover:text-foreground" href="/">
-              BribeMe
+              Bribe
             </Link>
             <h1 className="max-w-4xl text-3xl font-semibold tracking-tight md:text-4xl">
               {title}
@@ -130,10 +127,13 @@ export function PageShell({
   );
 }
 
-function getOwnerNavigationData(): OwnerNavigationData {
-  const { venue, campaigns, submissions } = ensureDemoData();
-  const socialPosts = listSocialPosts({ venueId: venue.id });
-  const rewards = listRewards({ venueId: venue.id });
+async function getOwnerNavigationData(): Promise<OwnerNavigationData> {
+  const { venue, campaigns, submissions } = await ensureDemoData();
+  const [socialPosts, rewards, issuedRewardsByCampaign] = await Promise.all([
+    listSocialPosts({ venueId: venue.id }),
+    listRewards({ venueId: venue.id }),
+    Promise.all(campaigns.map((campaign) => countIssuedRewards(campaign.id))),
+  ]);
 
   return {
     venueName: venue.name,
@@ -143,12 +143,12 @@ function getOwnerNavigationData(): OwnerNavigationData {
       approvedMedia: submissions.filter((submission) => submission.status === "approved").length,
       issuedRewards: rewards.filter((reward) => reward.status !== "void").length,
     },
-    campaigns: campaigns.map((campaign) => ({
+    campaigns: campaigns.map((campaign, index) => ({
       id: campaign.id,
       title: campaign.title,
       status: campaign.status,
       rewardLabel: campaign.rewardLabel,
-      issuedRewards: countIssuedRewards(campaign.id),
+      issuedRewards: issuedRewardsByCampaign[index],
     })),
   };
 }
@@ -203,10 +203,12 @@ export function Status({
   children,
   tone,
   icon,
+  className,
 }: {
   children: ReactNode;
   tone: "good" | "neutral" | "bad" | "muted";
   icon?: ReactNode;
+  className?: string;
 }) {
   const tones = {
     good: "border-foreground/15 bg-foreground text-background",
@@ -217,7 +219,7 @@ export function Status({
 
   return (
     <span
-      className={`inline-flex h-7 items-center gap-1.5 rounded-sm border px-2 text-xs font-medium ${tones[tone]} [&_svg]:size-3.5`}
+      className={`inline-flex min-h-7 max-w-full shrink-0 items-center gap-1.5 rounded-sm border px-2 py-1 text-xs leading-tight font-medium whitespace-normal ${tones[tone]} [&_svg]:size-3.5 ${className ?? ""}`}
     >
       {icon}
       {children}
@@ -236,9 +238,9 @@ export function Metric({ label, value }: { label: string; value: string }) {
 
 export function Score({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-lg border p-3">
+    <div className="min-w-0 rounded-lg border p-3">
       <div className="mb-2 flex items-center justify-between gap-3">
-        <p className="text-sm font-medium">{label}</p>
+        <p className="min-w-0 text-sm leading-tight font-medium text-wrap">{label}</p>
         <span className="font-mono text-sm">{value}</span>
       </div>
       <Progress value={value} />
@@ -259,6 +261,7 @@ export function PhotoPreview({
   href?: string;
   linkLabel?: string;
 }) {
+  const isApiMedia = src.startsWith("/api/");
   const preview = (
     <div
       className={`relative overflow-hidden rounded-lg border ${
@@ -271,18 +274,30 @@ export function PhotoPreview({
         fill
         className="object-cover"
         sizes={compact ? "220px" : "(max-width: 768px) 100vw, 280px"}
+        unoptimized={isApiMedia}
       />
     </div>
   );
 
   if (!href) return preview;
 
+  if (href.startsWith("/api/")) {
+    return (
+      <a
+        aria-label={linkLabel ?? alt}
+        className="block transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        href={href}
+      >
+        {preview}
+      </a>
+    );
+  }
+
   return (
     <Link
       aria-label={linkLabel ?? alt}
       className="block transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
       href={href}
-      prefetch={href.startsWith("/api/") ? false : undefined}
     >
       {preview}
     </Link>

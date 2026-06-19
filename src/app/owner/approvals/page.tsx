@@ -1,7 +1,8 @@
 import { ClipboardCheck } from "lucide-react";
 import Link from "next/link";
-import { AppCard, formatStatus, PageShell, PhotoPreview, Score, Status } from "@/components/bribeme/ui";
-import { SocialApprovalButton } from "@/components/bribeme/forms";
+import { AppCard, formatStatus, PageShell, PhotoPreview, Score, Status } from "@/components/bribe/ui";
+import { SocialApprovalButton } from "@/components/bribe/forms";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ensureDemoData } from "@/lib/demo-data";
 import { getSubmission, listSocialPosts } from "@/lib/repositories";
@@ -14,25 +15,30 @@ export default async function ApprovalsPage({
 }: {
   searchParams: Promise<{ postId?: string }>;
 }) {
-  const { venue } = ensureDemoData();
   const { postId } = await searchParams;
-  const posts = listSocialPosts({ venueId: venue.id });
-  const queue = posts
-    .map((item) => ({ post: item, submission: getSubmission(item.submissionId) }))
-    .filter((item) => item.submission);
+  const { venue } = await ensureDemoData();
+  const posts = await listSocialPosts({ venueId: venue.id });
+  const queue = (
+    await Promise.all(
+      posts.map(async (item) => ({
+        post: item,
+        submission: await getSubmission(item.submissionId),
+      })),
+    )
+  ).filter((item) => item.submission);
   const selectedItem = postId ? queue.find((item) => item.post.id === postId) : null;
   const activeItem = selectedItem ?? queue.find((item) => item.post.status === "draft") ?? queue[0];
   const post = activeItem?.post;
-  const submission = post ? getSubmission(post.submissionId) : null;
+  const submission = activeItem?.submission ?? null;
 
   return (
     <PageShell
       role="owner"
       title="Post queue"
-      description="Owners approve generated captions before anything is marked as posted."
+      description="Owners approve generated post descriptions and captions before anything is marked as posted."
     >
       {post && submission ? (
-        <div className="grid gap-5 xl:grid-cols-[320px_1fr]">
+        <div className="grid min-w-0 gap-5 xl:grid-cols-[minmax(260px,320px)_minmax(0,1fr)]">
           <AppCard
             description={`${queue.filter((item) => item.post.status === "draft").length} posts need review.`}
             icon={<ClipboardCheck />}
@@ -68,25 +74,49 @@ export default async function ApprovalsPage({
             description="Approval changes local post state in the database. No real social accounts are connected."
             title="Review post"
           >
-            <div className="grid gap-5 xl:grid-cols-[320px_1fr]">
+            <div className="grid min-w-0 gap-5 xl:grid-cols-[minmax(260px,320px)_minmax(0,1fr)]">
               <PhotoPreview
                 href={`/owner/submissions/${submission.id}`}
                 linkLabel={`Open ${submission.patronName ?? "guest"} submission`}
                 src={`/api/submissions/${submission.id}/media`}
               />
-              <div className="grid content-start gap-4">
-                <div className="grid gap-3 md:grid-cols-3">
+              <div className="grid min-w-0 content-start gap-4">
+                <div className="grid min-w-0 grid-cols-[repeat(auto-fit,minmax(min(100%,8.5rem),1fr))] gap-3">
                   <Score label="Quality" value={submission.qualityScore ?? 0} />
                   <Score label="Task match" value={submission.taskMatchScore ?? 0} />
                   <Score label="Safety" value={submission.safetyScore ?? 0} />
                 </div>
-                <Textarea className="min-h-32" defaultValue={post.caption} readOnly />
-                <div className="grid gap-2 sm:grid-cols-3">
-                  <Status tone={post.status === "draft" ? "neutral" : "good"}>
+                <div className="grid gap-2">
+                  <Label htmlFor="post-description">Post description</Label>
+                  <Textarea
+                    className="min-h-20"
+                    defaultValue={post.description}
+                    id="post-description"
+                    readOnly
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="post-caption">Caption</Label>
+                  <Textarea
+                    className="min-h-32"
+                    defaultValue={post.caption}
+                    id="post-caption"
+                    readOnly
+                  />
+                </div>
+                <div className="grid min-w-0 grid-cols-[repeat(auto-fit,minmax(min(100%,7.5rem),1fr))] gap-2">
+                  <Status
+                    className="w-full justify-center text-center"
+                    tone={post.status === "draft" ? "neutral" : "good"}
+                  >
                     {formatStatus(post.status)}
                   </Status>
-                  <Status tone="good">Rights captured</Status>
-                  <Status tone="muted">Owner approval required</Status>
+                  <Status className="w-full justify-center text-center" tone="good">
+                    Rights captured
+                  </Status>
+                  <Status className="w-full justify-center text-center" tone="muted">
+                    Owner approval required
+                  </Status>
                 </div>
                 <SocialApprovalButton post={post} />
               </div>

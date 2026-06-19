@@ -1,5 +1,5 @@
 import { Gift, ScanLine } from "lucide-react";
-import { AppCard, formatStatus, LinkButton, Metric, PageShell, Status } from "@/components/bribeme/ui";
+import { AppCard, formatStatus, LinkButton, Metric, PageShell, Status } from "@/components/bribe/ui";
 import {
   Table,
   TableBody,
@@ -13,9 +13,9 @@ import { listRewards } from "@/lib/repositories";
 
 export const dynamic = "force-dynamic";
 
-export default function RewardLedgerPage() {
-  const { venue } = ensureDemoData();
-  const rewards = listRewards({ venueId: venue.id });
+export default async function RewardLedgerPage() {
+  const { venue } = await ensureDemoData();
+  const rewards = await listRewards({ venueId: venue.id });
   const issued = rewards.filter((reward) => reward.status === "issued").length;
   const redeemed = rewards.filter((reward) => reward.status === "redeemed").length;
   const expired = rewards.filter((reward) => reward.status === "expired").length;

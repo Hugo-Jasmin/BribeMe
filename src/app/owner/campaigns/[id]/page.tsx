@@ -1,4 +1,5 @@
-import { AppCard, formatStatus, LinkButton, PageShell, Status } from "@/components/bribeme/ui";
+import { DeleteCampaignButton } from "@/components/bribe/campaign-actions";
+import { AppCard, formatStatus, LinkButton, PageShell, Status } from "@/components/bribe/ui";
 import { Progress } from "@/components/ui/progress";
 import { ensureDemoData, getPrimaryDemoCampaign } from "@/lib/demo-data";
 import { countIssuedRewards, getCampaign, listSubmissions } from "@/lib/repositories";
@@ -10,11 +11,15 @@ export default async function CampaignDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const { venue } = ensureDemoData();
+  const { venue } = await ensureDemoData();
   const { id } = await params;
-  const campaign = id === "demo" ? getPrimaryDemoCampaign() : getCampaign(id);
-  const submissions = campaign ? listSubmissions({ campaignId: campaign.id }) : [];
-  const rewardsIssued = campaign ? countIssuedRewards(campaign.id) : 0;
+  const campaign = id === "demo" ? await getPrimaryDemoCampaign() : await getCampaign(id);
+  const [submissions, rewardsIssued] = campaign
+    ? await Promise.all([
+        listSubmissions({ campaignId: campaign.id }),
+        countIssuedRewards(campaign.id),
+      ])
+    : [[], 0] as const;
   const approvals = submissions.filter((submission) => submission.status === "approved").length;
   const rewardsLeft =
     campaign?.maxRedemptions == null ? "No cap" : String(Math.max(0, campaign.maxRedemptions - rewardsIssued));
@@ -27,6 +32,15 @@ export default async function CampaignDetailPage({
       role="owner"
       title={campaign?.title ?? "Campaign not found"}
       description="Campaign performance, rewards, and submissions."
+      actions={
+        campaign ? (
+          <DeleteCampaignButton
+            campaignId={campaign.id}
+            redirectTo="/owner/campaigns"
+            title={campaign.title}
+          />
+        ) : undefined
+      }
     >
       {campaign ? (
         <section className="overflow-hidden rounded-lg border bg-card">

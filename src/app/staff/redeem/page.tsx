@@ -1,6 +1,6 @@
 import { TicketCheck } from "lucide-react";
-import { LinkButton, PageShell } from "@/components/bribeme/ui";
-import { StaffRedeemForm } from "@/components/bribeme/forms";
+import { LinkButton, PageShell } from "@/components/bribe/ui";
+import { StaffRedeemForm } from "@/components/bribe/forms";
 import { ensureDemoData } from "@/lib/demo-data";
 
 export const dynamic = "force-dynamic";
@@ -11,7 +11,7 @@ export default async function StaffRedeemPage({
   searchParams: Promise<{ code?: string }>;
 }) {
   const { code } = await searchParams;
-  ensureDemoData();
+  await ensureDemoData();
 
   return (
     <PageShell

@@ -1,18 +1,23 @@
 {
-  "name": "bribeme",
+  "name": "bribe",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=24 <25"
+  },
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint",
-    "test": "vitest run",
-    "verify:llm": "tsx scripts/verify-llm.ts",
-    "verify:api": "tsx scripts/verify-api.ts"
+    "check:node": "node scripts/use-node-24.mjs node scripts/check-node-version.mjs",
+    "dev": "node scripts/use-node-24.mjs next dev",
+    "build": "node scripts/use-node-24.mjs next build",
+    "start": "node scripts/use-node-24.mjs next start",
+    "lint": "node scripts/use-node-24.mjs eslint",
+    "test": "node scripts/use-node-24.mjs vitest run",
+    "check:turso": "node --env-file=.env scripts/use-node-24.mjs tsx scripts/check-turso.ts",
+    "verify:llm": "node scripts/use-node-24.mjs tsx scripts/verify-llm.ts",
+    "verify:api": "node scripts/use-node-24.mjs tsx scripts/verify-api.ts"
   },
   "dependencies": {
-    "better-sqlite3": "^12.9.0",
+    "@libsql/client": "^0.17.4",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
@@ -31,7 +36,6 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
-    "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

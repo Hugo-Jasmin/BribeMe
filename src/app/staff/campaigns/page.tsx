@@ -1,5 +1,5 @@
 import { Coffee } from "lucide-react";
-import { AppCard, LinkButton, PageShell, Status } from "@/components/bribeme/ui";
+import { AppCard, LinkButton, PageShell, Status } from "@/components/bribe/ui";
 import {
   Table,
   TableBody,
@@ -13,8 +13,11 @@ import { countIssuedRewards } from "@/lib/repositories";
 
 export const dynamic = "force-dynamic";
 
-export default function StaffCampaignsPage() {
-  const { campaigns } = ensureDemoData();
+export default async function StaffCampaignsPage() {
+  const { campaigns } = await ensureDemoData();
+  const issuedRewardsByCampaign = await Promise.all(
+    campaigns.map((campaign) => countIssuedRewards(campaign.id)),
+  );
 
   return (
     <PageShell
@@ -38,12 +41,12 @@ export default function StaffCampaignsPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {campaigns.map((campaign) => (
+            {campaigns.map((campaign, index) => (
               <TableRow key={campaign.id}>
                 <TableCell>{campaign.title}</TableCell>
                 <TableCell>{campaign.rewardLabel}</TableCell>
                 <TableCell>
-                  {countIssuedRewards(campaign.id)} / {campaign.maxRedemptions ?? "no cap"}
+                  {issuedRewardsByCampaign[index]} / {campaign.maxRedemptions ?? "no cap"}
                 </TableCell>
                 <TableCell className="text-right">
                   <Status tone={campaign.status === "active" ? "good" : "muted"}>

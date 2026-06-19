@@ -171,6 +171,7 @@ export function CampaignForm({ venueName }: { venueName: string }) {
     }
 
     router.push(`/owner/campaigns/${payload.campaign.id}`);
+    router.refresh();
   }
 
   return (
@@ -340,7 +341,7 @@ export function SocialApprovalButton({ post }: { post: SocialPost }) {
       });
       return;
     }
-    setState({ pending: false, error: null, message: "Caption regenerated" });
+    setState({ pending: false, error: null, message: "Post copy regenerated" });
     router.refresh();
   }
 
@@ -362,16 +363,21 @@ export function SocialApprovalButton({ post }: { post: SocialPost }) {
 
   return (
     <div className="grid gap-2">
-      <div className="grid gap-2 sm:grid-cols-2">
+      <div className="grid min-w-0 grid-cols-[repeat(auto-fit,minmax(min(100%,13rem),1fr))] gap-2">
         <Button
+          className="w-full min-w-0"
           disabled={state.pending || post.status !== "draft"}
           onClick={regenerateCaption}
           variant="outline"
         >
           {state.pending ? <Loader2 className="animate-spin" /> : <RefreshCw />}
-          Regenerate caption
+          Regenerate copy
         </Button>
-        <Button disabled={state.pending || post.status !== "draft"} onClick={approve}>
+        <Button
+          className="w-full min-w-0"
+          disabled={state.pending || post.status !== "draft"}
+          onClick={approve}
+        >
           {state.pending ? <Loader2 className="animate-spin" /> : <Send />}
           Approve post
         </Button>

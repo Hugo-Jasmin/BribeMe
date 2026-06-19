@@ -1,30 +1,43 @@
 import fs from "node:fs";
 import path from "node:path";
-import Database from "better-sqlite3";
-import { getDatabasePath } from "@/lib/config";
+import { createClient, type Client } from "@libsql/client";
+import { getDatabaseConfig } from "@/lib/config";
 
-let db: Database.Database | null = null;
+let db: Promise<Client> | null = null;
 
-export function getDb() {
+export async function getDb() {
   if (!db) {
-    const dbPath = getDatabasePath();
-    fs.mkdirSync(path.dirname(dbPath), { recursive: true });
-    db = new Database(dbPath);
-    db.pragma("journal_mode = WAL");
-    db.pragma("foreign_keys = ON");
-    migrate(db);
+    db = initializeDb();
   }
 
   return db;
 }
 
-export function closeDbForTests() {
-  db?.close();
+export async function closeDbForTests() {
+  const client = await db?.catch(() => null);
+  client?.close();
   db = null;
 }
 
-function migrate(database: Database.Database) {
-  database.exec(`
+async function initializeDb() {
+  const config = getDatabaseConfig();
+  if (config.url.startsWith("file:")) {
+    fs.mkdirSync(path.dirname(config.url.slice("file:".length)), { recursive: true });
+  }
+
+  const client = createClient({
+    url: config.url,
+    authToken: config.authToken,
+    intMode: "number",
+  });
+
+  await client.execute("PRAGMA foreign_keys = ON");
+  await migrate(client);
+  return client;
+}
+
+async function migrate(database: Client) {
+  await database.executeMultiple(`
     CREATE TABLE IF NOT EXISTS venues (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
@@ -86,6 +99,7 @@ function migrate(database: Database.Database) {
       submission_id TEXT NOT NULL REFERENCES submissions(id) ON DELETE CASCADE,
       campaign_id TEXT NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE,
       venue_id TEXT NOT NULL REFERENCES venues(id) ON DELETE CASCADE,
+      description TEXT NOT NULL DEFAULT '',
       caption TEXT NOT NULL,
       channels_json TEXT NOT NULL,
       status TEXT NOT NULL DEFAULT 'draft',
@@ -102,4 +116,12 @@ function migrate(database: Database.Database) {
     CREATE INDEX IF NOT EXISTS idx_rewards_code ON rewards(code);
     CREATE INDEX IF NOT EXISTS idx_social_posts_venue_id ON social_posts(venue_id);
   `);
+
+  const columns = await database.execute("PRAGMA table_info(social_posts)");
+  const hasDescription = columns.rows.some((row) => row.name === "description");
+  if (!hasDescription) {
+    await database.execute(
+      "ALTER TABLE social_posts ADD COLUMN description TEXT NOT NULL DEFAULT ''",
+    );
+  }
 }

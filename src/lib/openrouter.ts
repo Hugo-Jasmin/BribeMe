@@ -27,11 +27,13 @@ const VerificationResultSchema = z.object({
   safetyScore: z.number().int().min(0).max(100),
   decisionReason: z.string().min(1),
   observations: z.array(z.string()).default([]),
+  description: z.string().min(1),
   caption: z.string().min(1),
   hashtags: z.array(z.string()).default([]),
 });
 
 const CaptionResultSchema = z.object({
+  description: z.string().min(1),
   caption: z.string().min(1),
   hashtags: z.array(z.string()).default([]),
 });
@@ -44,6 +46,7 @@ type VerifySubmissionInput = {
 };
 
 type GenerateCaptionInput = VerifySubmissionInput & {
+  currentDescription?: string;
   currentCaption?: string;
 };
 
@@ -71,6 +74,7 @@ export async function generateSocialCaption({
   venue,
   campaign,
   imageDataUrl,
+  currentDescription,
   currentCaption,
   fetchImpl = fetch,
 }: GenerateCaptionInput) {
@@ -79,9 +83,9 @@ export async function generateSocialCaption({
     campaign,
     imageDataUrl,
     fetchImpl,
-    prompt: buildCaptionPrompt(venue, campaign, currentCaption),
+    prompt: buildCaptionPrompt(venue, campaign, currentDescription, currentCaption),
     system:
-      "You write concise, approval-ready social captions for restaurants and cafes. Return only valid JSON.",
+      "You write concise, approval-ready social post descriptions and captions for restaurants and cafes. Return only valid JSON.",
   });
 
   return CaptionResultSchema.parse(parseJsonFromText(text));
@@ -174,7 +178,9 @@ Approval rule:
 - approved must be true only when all three scores meet or exceed the minimum approval threshold.
 - Reject unclear, low-quality, unrelated, unsafe, or obviously staged-to-cheat submissions.
 
-Also write one concise caption the owner could approve for social media, plus a few hashtags.
+Also write:
+- one short internal post description that factually describes the image for the owner.
+- one concise public caption the owner could approve for social media, plus a few hashtags.
 
 Return JSON exactly with this shape:
 {
@@ -184,30 +190,39 @@ Return JSON exactly with this shape:
   "safetyScore": number,
   "decisionReason": string,
   "observations": string[],
+  "description": string,
   "caption": string,
   "hashtags": string[]
 }
 `.trim();
 }
 
-function buildCaptionPrompt(venue: Venue, campaign: Campaign, currentCaption?: string) {
+function buildCaptionPrompt(
+  venue: Venue,
+  campaign: Campaign,
+  currentDescription?: string,
+  currentCaption?: string,
+) {
   return `
-Write a fresh social media caption for this approved customer-submitted image.
+Write fresh social post copy for this approved customer-submitted image.
 
 Venue: ${venue.name}
 Campaign title: ${campaign.title}
 Challenge: ${campaign.challengePrompt}
 Reward context: ${campaign.rewardLabel}
+Current description: ${currentDescription?.trim() || "None"}
 Current caption: ${currentCaption?.trim() || "None"}
 
 Requirements:
-- Create a new caption that is meaningfully different from the current caption.
+- Create a short internal post description that factually describes the image for the owner.
+- Create a new public caption that is meaningfully different from the current caption.
 - Keep it concise and natural for a local restaurant/cafe.
 - Do not mention discounts, free items, or reward mechanics.
 - Include a few relevant hashtags.
 
 Return JSON exactly with this shape:
 {
+  "description": string,
   "caption": string,
   "hashtags": string[]
 }

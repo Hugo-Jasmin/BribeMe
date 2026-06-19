@@ -94,7 +94,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { LuminousRewardCard } from "@/components/bribeme/luminous-reward";
+import { LuminousRewardCard } from "@/components/bribe/luminous-reward";
 
 const serviceCounterTheme = {
   "--background": "oklch(0.985 0 0)",
@@ -134,7 +134,7 @@ export default function StyleboardPage() {
           <div className="max-w-4xl space-y-3">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Sparkles className="size-4" />
-              BribeMe styleboard
+              Bribe styleboard
             </div>
             <h1 className="text-3xl font-semibold tracking-tight md:text-5xl">
               Product views using the Service Counter direction
@@ -498,7 +498,7 @@ export default function StyleboardPage() {
                     <Textarea
                       className="min-h-28"
                       defaultValue={
-                        "Good vibes and even better company at BribeMe Demo Cafe. Cheers to the moments that matter.\n\n#BribeMeDemoCafe #CafeVibes #FriendshipGoals"
+                        "Good vibes and even better company at Bribe Demo Cafe. Cheers to the moments that matter.\n\n#BribeDemoCafe #CafeVibes #FriendshipGoals"
                       }
                     />
                     <div className="grid gap-2 sm:grid-cols-4">
@@ -610,7 +610,7 @@ export default function StyleboardPage() {
                   <div className="grid gap-3 sm:grid-cols-2">
                     <div className="space-y-2">
                       <Label>Venue name</Label>
-                      <Input defaultValue="BribeMe Demo Cafe" />
+                      <Input defaultValue="Bribe Demo Cafe" />
                     </div>
                     <div className="space-y-2">
                       <Label>Default reward cap</Label>
@@ -630,7 +630,7 @@ export default function StyleboardPage() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <Textarea defaultValue="#BribeMeDemoCafe #CafeVibes #LocalCoffee" />
+                  <Textarea defaultValue="#BribeDemoCafe #CafeVibes #LocalCoffee" />
                 </div>
               </ViewCard>
             </div>

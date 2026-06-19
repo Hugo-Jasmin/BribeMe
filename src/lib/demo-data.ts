@@ -21,30 +21,32 @@ export type DemoData = {
 
 const DEMO_SLUG = "demo-cafe";
 
-export function ensureDemoData(): DemoData {
-  const venue = findVenueBySlug(DEMO_SLUG) ?? createVenue({ name: "Demo Cafe", slug: DEMO_SLUG });
-  let campaigns = listCampaigns({ venueId: venue.id });
+export async function ensureDemoData(): Promise<DemoData> {
+  const venue =
+    (await findVenueBySlug(DEMO_SLUG)) ??
+    (await createVenue({ name: "Demo Cafe", slug: DEMO_SLUG }));
+  let campaigns = await listCampaigns({ venueId: venue.id });
 
   if (!campaigns.length) {
-    campaigns = createSeedCampaigns(venue.id);
+    campaigns = await createSeedCampaigns(venue.id);
   }
 
-  let submissions = listSubmissions({ venueId: venue.id });
+  let submissions = await listSubmissions({ venueId: venue.id });
   if (!submissions.length) {
-    seedSubmissions(venue, campaigns);
-    submissions = listSubmissions({ venueId: venue.id });
+    await seedSubmissions(venue, campaigns);
+    submissions = await listSubmissions({ venueId: venue.id });
   }
 
   return { venue, campaigns, submissions };
 }
 
-export function getPrimaryDemoCampaign() {
-  const { campaigns } = ensureDemoData();
+export async function getPrimaryDemoCampaign() {
+  const { campaigns } = await ensureDemoData();
   return campaigns.find((campaign) => campaign.status === "active") ?? campaigns[0];
 }
 
-function createSeedCampaigns(venueId: string) {
-  return [
+async function createSeedCampaigns(venueId: string) {
+  return Promise.all([
     createCampaign({
       venueId,
       title: "Coffee and croissant",
@@ -75,13 +77,13 @@ function createSeedCampaigns(venueId: string) {
       validationThreshold: 72,
       status: "paused",
     }),
-  ];
+  ]);
 }
 
-function seedSubmissions(venue: Venue, campaigns: Campaign[]) {
+async function seedSubmissions(venue: Venue, campaigns: Campaign[]) {
   for (const [index, scenario] of demoScenarios.entries()) {
     const campaign = campaigns[index % campaigns.length];
-    const submission = createSubmission({
+    const submission = await createSubmission({
       campaignId: campaign.id,
       venueId: venue.id,
       patronName: scenario.patron,
@@ -94,7 +96,7 @@ function seedSubmissions(venue: Venue, campaigns: Campaign[]) {
     const approved = scenario.status === "Approved";
     const needsReview = scenario.status === "Pending";
     const reward = approved
-      ? createReward({
+      ? await createReward({
           submissionId: submission.id,
           campaignId: campaign.id,
           venueId: venue.id,
@@ -103,7 +105,7 @@ function seedSubmissions(venue: Venue, campaigns: Campaign[]) {
         })
       : null;
 
-    updateSubmissionVerification({
+    await updateSubmissionVerification({
       submissionId: submission.id,
       status: approved ? "approved" : needsReview ? "needs_review" : "rejected",
       rewardCode: reward?.code,
@@ -118,17 +120,19 @@ function seedSubmissions(venue: Venue, campaigns: Campaign[]) {
             ? "The image is usable, but the owner should confirm it fits the campaign before posting."
             : "The image does not clearly satisfy the campaign prompt.",
         observations: [scenario.challenge],
+        description: scenario.challenge,
         caption: scenario.caption,
-        hashtags: ["#DemoCafe", "#BribeMe"],
+        hashtags: ["#DemoCafe", "#Bribe"],
       },
     });
 
     if (approved) {
-      createSocialPost({
+      await createSocialPost({
         submissionId: submission.id,
         campaignId: campaign.id,
         venueId: venue.id,
-        caption: `${scenario.caption}\n\n#DemoCafe #BribeMe`,
+        description: scenario.challenge,
+        caption: `${scenario.caption}\n\n#DemoCafe #Bribe`,
         channels: scenario.channels.map((channel) => channel.toLowerCase()),
       });
     }

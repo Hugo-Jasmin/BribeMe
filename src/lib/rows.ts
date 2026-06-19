@@ -67,6 +67,7 @@ type SocialPostRow = {
   submission_id: string;
   campaign_id: string;
   venue_id: string;
+  description: string | null;
   caption: string;
   channels_json: string;
   status: SocialPost["status"];
@@ -147,6 +148,7 @@ export function mapSocialPost(row: SocialPostRow): SocialPost {
     submissionId: row.submission_id,
     campaignId: row.campaign_id,
     venueId: row.venue_id,
+    description: row.description ?? "",
     caption: row.caption,
     channelsJson: row.channels_json,
     status: row.status,

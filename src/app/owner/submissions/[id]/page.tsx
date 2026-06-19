@@ -1,6 +1,6 @@
 import { Eye, ShieldCheck } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AppCard, formatStatus, LinkButton, PageShell, PhotoPreview, Score, Status } from "@/components/bribeme/ui";
+import { AppCard, formatStatus, LinkButton, PageShell, PhotoPreview, Score, Status } from "@/components/bribe/ui";
 import { ensureDemoData } from "@/lib/demo-data";
 import { getCampaign, getRewardByCode, getSubmission, listSubmissions } from "@/lib/repositories";
 
@@ -11,12 +11,14 @@ export default async function SubmissionReviewPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  ensureDemoData();
+  await ensureDemoData();
   const { id } = await params;
-  const fallback = listSubmissions()[0];
-  const submission = id === "demo" ? fallback : getSubmission(id);
-  const campaign = submission ? getCampaign(submission.campaignId) : null;
-  const reward = submission?.rewardCode ? getRewardByCode(submission.rewardCode) : null;
+  const fallback = (await listSubmissions())[0];
+  const submission = id === "demo" ? fallback : await getSubmission(id);
+  const [campaign, reward] = await Promise.all([
+    submission ? getCampaign(submission.campaignId) : null,
+    submission?.rewardCode ? getRewardByCode(submission.rewardCode) : null,
+  ]);
 
   return (
     <PageShell

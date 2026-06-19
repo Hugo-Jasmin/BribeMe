@@ -9,7 +9,7 @@ export async function POST(
 ) {
   try {
     const { code } = await params;
-    const reward = redeemReward(code);
+    const reward = await redeemReward(code);
     if (!reward) return json({ error: "Reward not found" }, { status: 404 });
     return json({ reward });
   } catch (error) {

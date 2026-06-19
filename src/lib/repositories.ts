@@ -17,11 +17,40 @@ import type {
   VerificationResult,
 } from "@/lib/types";
 
+type QueryValue = string | number | null;
+
 function nowIso() {
   return new Date().toISOString();
 }
 
-export function createVenue(input: { name: string; slug?: string }) {
+async function execute(sql: string, args: QueryValue[] = []) {
+  const db = await getDb();
+  return db.execute({ sql, args });
+}
+
+async function firstRow(sql: string, args: QueryValue[] = []) {
+  const result = await execute(sql, args);
+  return result.rows[0] ?? null;
+}
+
+function filteredWhere(filters: Record<string, string | undefined>) {
+  const clauses: string[] = [];
+  const params: QueryValue[] = [];
+
+  for (const [column, value] of Object.entries(filters)) {
+    if (value) {
+      clauses.push(`${column} = ?`);
+      params.push(value);
+    }
+  }
+
+  return {
+    where: clauses.length ? `WHERE ${clauses.join(" AND ")}` : "",
+    params,
+  };
+}
+
+export async function createVenue(input: { name: string; slug?: string }) {
   const createdAt = nowIso();
   const venue = {
     id: createId("ven"),
@@ -30,36 +59,37 @@ export function createVenue(input: { name: string; slug?: string }) {
     createdAt,
   };
 
-  getDb()
-    .prepare("INSERT INTO venues (id, name, slug, created_at) VALUES (?, ?, ?, ?)")
-    .run(venue.id, venue.name, venue.slug, venue.createdAt);
+  await execute("INSERT INTO venues (id, name, slug, created_at) VALUES (?, ?, ?, ?)", [
+    venue.id,
+    venue.name,
+    venue.slug,
+    venue.createdAt,
+  ]);
 
   return venue;
 }
 
-export function listVenues() {
-  return getDb()
-    .prepare("SELECT * FROM venues ORDER BY created_at DESC")
-    .all()
-    .map((row) => mapVenue(row as never));
+export async function listVenues() {
+  const result = await execute("SELECT * FROM venues ORDER BY created_at DESC");
+  return result.rows.map((row) => mapVenue(row as never));
 }
 
-export function getVenue(id: string) {
-  const row = getDb().prepare("SELECT * FROM venues WHERE id = ?").get(id);
+export async function getVenue(id: string) {
+  const row = await firstRow("SELECT * FROM venues WHERE id = ?", [id]);
   return row ? mapVenue(row as never) : null;
 }
 
-export function updateVenue(id: string, input: { name: string }) {
-  getDb().prepare("UPDATE venues SET name = ? WHERE id = ?").run(input.name, id);
+export async function updateVenue(id: string, input: { name: string }) {
+  await execute("UPDATE venues SET name = ? WHERE id = ?", [input.name, id]);
   return getVenue(id);
 }
 
-export function findVenueBySlug(slug: string) {
-  const row = getDb().prepare("SELECT * FROM venues WHERE slug = ?").get(slugify(slug));
+export async function findVenueBySlug(slug: string) {
+  const row = await firstRow("SELECT * FROM venues WHERE slug = ?", [slugify(slug)]);
   return row ? mapVenue(row as never) : null;
 }
 
-export function createCampaign(input: {
+export async function createCampaign(input: {
   venueId: string;
   title: string;
   challengePrompt: string;
@@ -88,15 +118,13 @@ export function createCampaign(input: {
     updatedAt: timestamp,
   };
 
-  getDb()
-    .prepare(
-      `INSERT INTO campaigns (
-        id, venue_id, title, challenge_prompt, reward_label, budget_cents,
-        max_redemptions, validation_threshold, starts_at, ends_at, status,
-        created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    )
-    .run(
+  await execute(
+    `INSERT INTO campaigns (
+      id, venue_id, title, challenge_prompt, reward_label, budget_cents,
+      max_redemptions, validation_threshold, starts_at, ends_at, status,
+      created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
       campaign.id,
       campaign.venueId,
       campaign.title,
@@ -110,44 +138,43 @@ export function createCampaign(input: {
       campaign.status,
       campaign.createdAt,
       campaign.updatedAt,
-    );
+    ],
+  );
 
   return campaign;
 }
 
-export function listCampaigns(filters: { venueId?: string; status?: CampaignStatus } = {}) {
-  const clauses: string[] = [];
-  const params: unknown[] = [];
-
-  if (filters.venueId) {
-    clauses.push("venue_id = ?");
-    params.push(filters.venueId);
-  }
-  if (filters.status) {
-    clauses.push("status = ?");
-    params.push(filters.status);
-  }
-
-  const where = clauses.length ? `WHERE ${clauses.join(" AND ")}` : "";
-  return getDb()
-    .prepare(`SELECT * FROM campaigns ${where} ORDER BY created_at DESC`)
-    .all(...params)
-    .map((row) => mapCampaign(row as never));
+export async function listCampaigns(filters: { venueId?: string; status?: CampaignStatus } = {}) {
+  const { where, params } = filteredWhere({
+    venue_id: filters.venueId,
+    status: filters.status,
+  });
+  const result = await execute(`SELECT * FROM campaigns ${where} ORDER BY created_at DESC`, params);
+  return result.rows.map((row) => mapCampaign(row as never));
 }
 
-export function getCampaign(id: string) {
-  const row = getDb().prepare("SELECT * FROM campaigns WHERE id = ?").get(id);
+export async function getCampaign(id: string) {
+  const row = await firstRow("SELECT * FROM campaigns WHERE id = ?", [id]);
   return row ? mapCampaign(row as never) : null;
 }
 
-export function countIssuedRewards(campaignId: string) {
-  const row = getDb()
-    .prepare("SELECT COUNT(*) AS total FROM rewards WHERE campaign_id = ? AND status != 'void'")
-    .get(campaignId) as { total: number };
-  return row.total;
+export async function deleteCampaign(id: string) {
+  const campaign = await getCampaign(id);
+  if (!campaign) return null;
+
+  await execute("DELETE FROM campaigns WHERE id = ?", [id]);
+  return campaign;
 }
 
-export function createSubmission(input: {
+export async function countIssuedRewards(campaignId: string) {
+  const row = (await firstRow(
+    "SELECT COUNT(*) AS total FROM rewards WHERE campaign_id = ? AND status != 'void'",
+    [campaignId],
+  )) as unknown as { total: number } | null;
+  return row?.total ?? 0;
+}
+
+export async function createSubmission(input: {
   campaignId: string;
   venueId: string;
   patronName?: string | null;
@@ -177,14 +204,12 @@ export function createSubmission(input: {
     updatedAt: timestamp,
   };
 
-  getDb()
-    .prepare(
-      `INSERT INTO submissions (
-        id, campaign_id, venue_id, patron_name, media_path, media_mime,
-        media_type, original_filename, status, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    )
-    .run(
+  await execute(
+    `INSERT INTO submissions (
+      id, campaign_id, venue_id, patron_name, media_path, media_mime,
+      media_type, original_filename, status, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
       submission.id,
       submission.campaignId,
       submission.venueId,
@@ -196,31 +221,30 @@ export function createSubmission(input: {
       submission.status,
       submission.createdAt,
       submission.updatedAt,
-    );
+    ],
+  );
 
   return submission;
 }
 
-export function updateSubmissionVerification(input: {
+export async function updateSubmissionVerification(input: {
   submissionId: string;
   status: SubmissionStatus;
   result: VerificationResult;
   rewardCode?: string | null;
 }) {
-  getDb()
-    .prepare(
-      `UPDATE submissions SET
-        status = ?,
-        quality_score = ?,
-        task_match_score = ?,
-        safety_score = ?,
-        decision_reason = ?,
-        validation_json = ?,
-        reward_code = ?,
-        updated_at = ?
-      WHERE id = ?`,
-    )
-    .run(
+  await execute(
+    `UPDATE submissions SET
+      status = ?,
+      quality_score = ?,
+      task_match_score = ?,
+      safety_score = ?,
+      decision_reason = ?,
+      validation_json = ?,
+      reward_code = ?,
+      updated_at = ?
+    WHERE id = ?`,
+    [
       input.status,
       input.result.qualityScore,
       input.result.taskMatchScore,
@@ -230,65 +254,44 @@ export function updateSubmissionVerification(input: {
       input.rewardCode ?? null,
       nowIso(),
       input.submissionId,
-    );
+    ],
+  );
 
   return getSubmission(input.submissionId);
 }
 
-export function getSubmission(id: string) {
-  const row = getDb().prepare("SELECT * FROM submissions WHERE id = ?").get(id);
+export async function getSubmission(id: string) {
+  const row = await firstRow("SELECT * FROM submissions WHERE id = ?", [id]);
   return row ? mapSubmission(row as never) : null;
 }
 
-export function deleteSubmission(id: string) {
-  const submission = getSubmission(id);
+export async function deleteSubmission(id: string) {
+  const submission = await getSubmission(id);
   if (!submission) return null;
 
-  getDb().prepare("DELETE FROM submissions WHERE id = ?").run(id);
+  await execute("DELETE FROM submissions WHERE id = ?", [id]);
   return submission;
 }
 
-export function listSubmissions(filters: { campaignId?: string; venueId?: string } = {}) {
-  const clauses: string[] = [];
-  const params: unknown[] = [];
-
-  if (filters.campaignId) {
-    clauses.push("campaign_id = ?");
-    params.push(filters.campaignId);
-  }
-  if (filters.venueId) {
-    clauses.push("venue_id = ?");
-    params.push(filters.venueId);
-  }
-
-  const where = clauses.length ? `WHERE ${clauses.join(" AND ")}` : "";
-  return getDb()
-    .prepare(`SELECT * FROM submissions ${where} ORDER BY created_at DESC`)
-    .all(...params)
-    .map((row) => mapSubmission(row as never));
+export async function listSubmissions(filters: { campaignId?: string; venueId?: string } = {}) {
+  const { where, params } = filteredWhere({
+    campaign_id: filters.campaignId,
+    venue_id: filters.venueId,
+  });
+  const result = await execute(`SELECT * FROM submissions ${where} ORDER BY created_at DESC`, params);
+  return result.rows.map((row) => mapSubmission(row as never));
 }
 
-export function listRewards(filters: { campaignId?: string; venueId?: string } = {}) {
-  const clauses: string[] = [];
-  const params: unknown[] = [];
-
-  if (filters.campaignId) {
-    clauses.push("campaign_id = ?");
-    params.push(filters.campaignId);
-  }
-  if (filters.venueId) {
-    clauses.push("venue_id = ?");
-    params.push(filters.venueId);
-  }
-
-  const where = clauses.length ? `WHERE ${clauses.join(" AND ")}` : "";
-  return getDb()
-    .prepare(`SELECT * FROM rewards ${where} ORDER BY created_at DESC`)
-    .all(...params)
-    .map((row) => mapReward(row as never));
+export async function listRewards(filters: { campaignId?: string; venueId?: string } = {}) {
+  const { where, params } = filteredWhere({
+    campaign_id: filters.campaignId,
+    venue_id: filters.venueId,
+  });
+  const result = await execute(`SELECT * FROM rewards ${where} ORDER BY created_at DESC`, params);
+  return result.rows.map((row) => mapReward(row as never));
 }
 
-export function createReward(input: {
+export async function createReward(input: {
   submissionId: string;
   campaignId: string;
   venueId: string;
@@ -308,14 +311,12 @@ export function createReward(input: {
     createdAt: nowIso(),
   };
 
-  getDb()
-    .prepare(
-      `INSERT INTO rewards (
-        id, submission_id, campaign_id, venue_id, code, label, status,
-        expires_at, redeemed_at, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    )
-    .run(
+  await execute(
+    `INSERT INTO rewards (
+      id, submission_id, campaign_id, venue_id, code, label, status,
+      expires_at, redeemed_at, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
       reward.id,
       reward.submissionId,
       reward.campaignId,
@@ -326,32 +327,35 @@ export function createReward(input: {
       reward.expiresAt,
       reward.redeemedAt,
       reward.createdAt,
-    );
+    ],
+  );
 
   return reward;
 }
 
-export function getRewardByCode(code: string) {
-  const row = getDb().prepare("SELECT * FROM rewards WHERE code = ?").get(code);
+export async function getRewardByCode(code: string) {
+  const row = await firstRow("SELECT * FROM rewards WHERE code = ?", [code]);
   return row ? mapReward(row as never) : null;
 }
 
-export function redeemReward(code: string) {
-  const reward = getRewardByCode(code);
+export async function redeemReward(code: string) {
+  const reward = await getRewardByCode(code);
   if (!reward) return null;
   if (reward.status !== "issued") return reward;
 
-  getDb()
-    .prepare("UPDATE rewards SET status = 'redeemed', redeemed_at = ? WHERE code = ?")
-    .run(nowIso(), code);
+  await execute("UPDATE rewards SET status = 'redeemed', redeemed_at = ? WHERE code = ?", [
+    nowIso(),
+    code,
+  ]);
 
   return getRewardByCode(code);
 }
 
-export function createSocialPost(input: {
+export async function createSocialPost(input: {
   submissionId: string;
   campaignId: string;
   venueId: string;
+  description: string;
   caption: string;
   channels?: string[];
 }) {
@@ -361,6 +365,7 @@ export function createSocialPost(input: {
     submissionId: input.submissionId,
     campaignId: input.campaignId,
     venueId: input.venueId,
+    description: input.description,
     caption: input.caption,
     channelsJson: JSON.stringify(input.channels ?? ["instagram", "tiktok", "facebook"]),
     status: "draft",
@@ -371,18 +376,17 @@ export function createSocialPost(input: {
     updatedAt: timestamp,
   };
 
-  getDb()
-    .prepare(
-      `INSERT INTO social_posts (
-        id, submission_id, campaign_id, venue_id, caption, channels_json,
-        status, owner_note, approved_at, posted_at, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    )
-    .run(
+  await execute(
+    `INSERT INTO social_posts (
+      id, submission_id, campaign_id, venue_id, description, caption, channels_json,
+      status, owner_note, approved_at, posted_at, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
       post.id,
       post.submissionId,
       post.campaignId,
       post.venueId,
+      post.description,
       post.caption,
       post.channelsJson,
       post.status,
@@ -391,68 +395,61 @@ export function createSocialPost(input: {
       post.postedAt,
       post.createdAt,
       post.updatedAt,
-    );
+    ],
+  );
 
   return post;
 }
 
-export function listSocialPosts(filters: { venueId?: string; campaignId?: string } = {}) {
-  const clauses: string[] = [];
-  const params: unknown[] = [];
-
-  if (filters.venueId) {
-    clauses.push("venue_id = ?");
-    params.push(filters.venueId);
-  }
-  if (filters.campaignId) {
-    clauses.push("campaign_id = ?");
-    params.push(filters.campaignId);
-  }
-
-  const where = clauses.length ? `WHERE ${clauses.join(" AND ")}` : "";
-  return getDb()
-    .prepare(`SELECT * FROM social_posts ${where} ORDER BY created_at DESC`)
-    .all(...params)
-    .map((row) => mapSocialPost(row as never));
+export async function listSocialPosts(filters: { venueId?: string; campaignId?: string } = {}) {
+  const { where, params } = filteredWhere({
+    venue_id: filters.venueId,
+    campaign_id: filters.campaignId,
+  });
+  const result = await execute(`SELECT * FROM social_posts ${where} ORDER BY created_at DESC`, params);
+  return result.rows.map((row) => mapSocialPost(row as never));
 }
 
-export function getSocialPost(id: string) {
-  const row = getDb().prepare("SELECT * FROM social_posts WHERE id = ?").get(id);
+export async function getSocialPost(id: string) {
+  const row = await firstRow("SELECT * FROM social_posts WHERE id = ?", [id]);
   return row ? mapSocialPost(row as never) : null;
 }
 
-export function approveSocialPost(id: string) {
-  getDb()
-    .prepare(
-      `UPDATE social_posts
-       SET status = 'approved', approved_at = ?, updated_at = ?
-       WHERE id = ? AND status = 'draft'`,
-    )
-    .run(nowIso(), nowIso(), id);
+export async function approveSocialPost(id: string) {
+  const timestamp = nowIso();
+  await execute(
+    `UPDATE social_posts
+     SET status = 'approved', approved_at = ?, updated_at = ?
+     WHERE id = ? AND status = 'draft'`,
+    [timestamp, timestamp, id],
+  );
 
   return getSocialPost(id);
 }
 
-export function updateDraftSocialPostCaption(id: string, caption: string) {
-  getDb()
-    .prepare(
-      `UPDATE social_posts
-       SET caption = ?, updated_at = ?
-       WHERE id = ? AND status = 'draft'`,
-    )
-    .run(caption, nowIso(), id);
+export async function updateDraftSocialPostCopy(input: {
+  id: string;
+  description: string;
+  caption: string;
+}) {
+  await execute(
+    `UPDATE social_posts
+     SET description = ?, caption = ?, updated_at = ?
+     WHERE id = ? AND status = 'draft'`,
+    [input.description, input.caption, nowIso(), input.id],
+  );
 
-  return getSocialPost(id);
+  return getSocialPost(input.id);
 }
 
-export function markSocialPostPosted(id: string) {
-  getDb()
-    .prepare(
-      `UPDATE social_posts
-       SET status = 'posted', posted_at = ?, updated_at = ?
-       WHERE id = ? AND status = 'approved'`,
-    )
-    .run(nowIso(), nowIso(), id);
+export async function markSocialPostPosted(id: string) {
+  const timestamp = nowIso();
+  await execute(
+    `UPDATE social_posts
+     SET status = 'posted', posted_at = ?, updated_at = ?
+     WHERE id = ? AND status = 'approved'`,
+    [timestamp, timestamp, id],
+  );
 
   return getSocialPost(id);
 }

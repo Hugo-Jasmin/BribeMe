@@ -1,7 +1,7 @@
 import { Save, Settings2 } from "lucide-react";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { AppCard, PageShell } from "@/components/bribeme/ui";
+import { AppCard, PageShell } from "@/components/bribe/ui";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -30,7 +30,7 @@ async function saveVenueSettings(formData: FormData) {
     name: formData.get("name"),
   });
 
-  updateVenue(venueId, input);
+  await updateVenue(venueId, input);
   revalidatePath("/owner");
   revalidatePath("/owner/settings");
   redirect("/owner/settings?saved=1");
@@ -42,7 +42,7 @@ export default async function VenueSettingsPage({
   searchParams: Promise<{ saved?: string }>;
 }) {
   const { saved } = await searchParams;
-  const { venue } = ensureDemoData();
+  const { venue } = await ensureDemoData();
 
   return (
     <PageShell
@@ -98,7 +98,7 @@ export default async function VenueSettingsPage({
             </div>
             <div className="space-y-2">
               <Label>Default hashtags</Label>
-              <Textarea defaultValue="#BribeMeDemoCafe #CafeVibes #LocalCoffee" />
+              <Textarea defaultValue="#BribeDemoCafe #CafeVibes #LocalCoffee" />
             </div>
           </div>
         </AppCard>

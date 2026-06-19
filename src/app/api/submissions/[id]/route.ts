@@ -10,7 +10,7 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    const submission = deleteSubmission(id);
+    const submission = await deleteSubmission(id);
     if (!submission) return json({ error: "Submission not found" }, { status: 404 });
 
     await deleteStoredMedia(submission.mediaPath);

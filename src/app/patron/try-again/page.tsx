@@ -1,6 +1,6 @@
 import { AlertCircle, Camera } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AppCard, LinkButton, PageShell, PhotoPreview } from "@/components/bribeme/ui";
+import { AppCard, LinkButton, PageShell, PhotoPreview } from "@/components/bribe/ui";
 import { getSubmission } from "@/lib/repositories";
 
 export const dynamic = "force-dynamic";
@@ -11,7 +11,7 @@ export default async function PatronTryAgainPage({
   searchParams: Promise<{ submissionId?: string }>;
 }) {
   const { submissionId } = await searchParams;
-  const submission = submissionId ? getSubmission(submissionId) : null;
+  const submission = submissionId ? await getSubmission(submissionId) : null;
   const mediaSrc = submission ? `/api/submissions/${submission.id}/media` : undefined;
   const retryHref = submission
     ? `/patron/submit?campaignId=${submission.campaignId}`

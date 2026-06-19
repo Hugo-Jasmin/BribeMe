@@ -1,5 +1,6 @@
 import { Megaphone, Settings2 } from "lucide-react";
-import { AppCard, formatStatus, LinkButton, Metric, PageShell, Status } from "@/components/bribeme/ui";
+import { DeleteCampaignButton } from "@/components/bribe/campaign-actions";
+import { AppCard, formatStatus, LinkButton, Metric, PageShell, Status } from "@/components/bribe/ui";
 import {
   Table,
   TableBody,
@@ -13,11 +14,14 @@ import { countIssuedRewards } from "@/lib/repositories";
 
 export const dynamic = "force-dynamic";
 
-export default function CampaignsPage() {
-  const { campaigns } = ensureDemoData();
+export default async function CampaignsPage() {
+  const { campaigns } = await ensureDemoData();
   const active = campaigns.filter((campaign) => campaign.status === "active").length;
   const paused = campaigns.filter((campaign) => campaign.status === "paused").length;
-  const totalRewards = campaigns.reduce((sum, campaign) => sum + countIssuedRewards(campaign.id), 0);
+  const issuedRewardsByCampaign = await Promise.all(
+    campaigns.map((campaign) => countIssuedRewards(campaign.id)),
+  );
+  const totalRewards = issuedRewardsByCampaign.reduce((sum, total) => sum + total, 0);
 
   return (
     <PageShell
@@ -67,9 +71,12 @@ export default function CampaignsPage() {
                   </TableCell>
                   <TableCell>{campaign.rewardLabel}</TableCell>
                   <TableCell className="text-right">
-                    <LinkButton href={`/owner/campaigns/${campaign.id}`}>
-                      <Settings2 /> Manage
-                    </LinkButton>
+                    <div className="flex justify-end gap-2">
+                      <LinkButton href={`/owner/campaigns/${campaign.id}`}>
+                        <Settings2 /> Manage
+                      </LinkButton>
+                      <DeleteCampaignButton campaignId={campaign.id} title={campaign.title} />
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}

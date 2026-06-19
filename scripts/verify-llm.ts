@@ -25,8 +25,8 @@ async function main() {
 
   const venue: Venue = {
     id: "ven_llm_demo",
-    name: "BribeMe Demo Cafe",
-    slug: "bribeme-demo-cafe",
+    name: "Bribe Demo Cafe",
+    slug: "bribe-demo-cafe",
     createdAt: new Date().toISOString(),
   };
 
@@ -63,6 +63,7 @@ async function main() {
         taskMatchScore: result.taskMatchScore,
         safetyScore: result.safetyScore,
         decisionReason: result.decisionReason,
+        description: result.description,
         caption: result.caption,
         hashtags: result.hashtags,
       },

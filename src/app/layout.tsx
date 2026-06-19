@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "BribeMe",
+  title: "Bribe",
   description: "Local customer content reward demo for restaurants and cafes.",
 };
 

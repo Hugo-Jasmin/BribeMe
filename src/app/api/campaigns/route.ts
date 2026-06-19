@@ -7,6 +7,7 @@ import {
 } from "@/lib/repositories";
 import { errorJson, json } from "@/lib/http";
 import { CreateCampaignSchema } from "@/lib/schemas";
+import { revalidatePath } from "next/cache";
 
 export const runtime = "nodejs";
 
@@ -16,7 +17,7 @@ export async function GET(request: Request) {
   const status = url.searchParams.get("status") ?? undefined;
 
   return json({
-    campaigns: listCampaigns({
+    campaigns: await listCampaigns({
       venueId,
       status: status as never,
     }),
@@ -26,9 +27,9 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const input = CreateCampaignSchema.parse(await request.json());
-    const venue = resolveVenue(input);
+    const venue = await resolveVenue(input);
 
-    const campaign = createCampaign({
+    const campaign = await createCampaign({
       venueId: venue.id,
       title: input.title,
       challengePrompt: input.challengePrompt,
@@ -41,19 +42,24 @@ export async function POST(request: Request) {
       status: input.status,
     });
 
+    revalidatePath("/owner");
+    revalidatePath("/owner/campaigns");
+    revalidatePath("/patron/qr");
+    revalidatePath("/patron/submit");
+
     return json({ venue, campaign }, { status: 201 });
   } catch (error) {
     return errorJson(error);
   }
 }
 
-function resolveVenue(input: {
+async function resolveVenue(input: {
   venueId?: string;
   venueName?: string;
   venueSlug?: string;
 }) {
   if (input.venueId) {
-    const venue = getVenue(input.venueId);
+    const venue = await getVenue(input.venueId);
     if (!venue) throw new Error("Venue not found");
     return venue;
   }
@@ -63,7 +69,7 @@ function resolveVenue(input: {
   }
 
   if (input.venueSlug) {
-    const existing = findVenueBySlug(input.venueSlug);
+    const existing = await findVenueBySlug(input.venueSlug);
     if (existing) return existing;
   }
 

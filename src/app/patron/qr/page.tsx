@@ -1,12 +1,12 @@
 import { ArrowRight, Camera, ListChecks } from "lucide-react";
-import { AppCard, LinkButton, PageShell } from "@/components/bribeme/ui";
+import { AppCard, LinkButton, PageShell } from "@/components/bribe/ui";
 import { orderPatronCampaigns } from "@/lib/campaign-ordering";
 import { ensureDemoData } from "@/lib/demo-data";
 
 export const dynamic = "force-dynamic";
 
-export default function PatronQrPage() {
-  const { campaigns } = ensureDemoData();
+export default async function PatronQrPage() {
+  const { campaigns } = await ensureDemoData();
   const activeCampaigns = orderPatronCampaigns(
     campaigns.filter((campaign) => campaign.status === "active"),
   );

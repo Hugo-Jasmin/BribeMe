@@ -46,6 +46,7 @@ describe("verifyImageSubmission", () => {
                     safetyScore: 100,
                     decisionReason: "Good, but just below quality threshold.",
                     observations: ["People and drinks are visible."],
+                    description: "A group of friends sitting together with drinks on the table.",
                     caption: "Round two at Demo Cafe.",
                     hashtags: ["#DemoCafe"],
                   }),

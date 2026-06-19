@@ -17,7 +17,7 @@ export const runtime = "nodejs";
 export async function GET(request: Request) {
   const url = new URL(request.url);
   return json({
-    submissions: listSubmissions({
+    submissions: await listSubmissions({
       campaignId: url.searchParams.get("campaignId") ?? undefined,
       venueId: url.searchParams.get("venueId") ?? undefined,
     }),
@@ -35,24 +35,24 @@ export async function POST(request: Request) {
       return json({ error: "media file is required" }, { status: 400 });
     }
 
-    const campaign = getCampaign(campaignId);
+    const campaign = await getCampaign(campaignId);
     if (!campaign) return json({ error: "Campaign not found" }, { status: 404 });
     if (campaign.status !== "active") {
       return json({ error: "Campaign is not active" }, { status: 409 });
     }
 
-    const venue = getVenue(campaign.venueId);
+    const venue = await getVenue(campaign.venueId);
     if (!venue) return json({ error: "Venue not found" }, { status: 404 });
 
     if (
       campaign.maxRedemptions !== null &&
-      countIssuedRewards(campaign.id) >= campaign.maxRedemptions
+      (await countIssuedRewards(campaign.id)) >= campaign.maxRedemptions
     ) {
       return json({ error: "Campaign reward limit has been reached" }, { status: 409 });
     }
 
     const stored = await saveUploadedMedia(media);
-    const submission = createSubmission({
+    const submission = await createSubmission({
       campaignId: campaign.id,
       venueId: venue.id,
       patronName,
@@ -82,7 +82,7 @@ export async function POST(request: Request) {
     });
 
     const reward = validation.approved
-      ? createReward({
+      ? await createReward({
           submissionId: submission.id,
           campaignId: campaign.id,
           venueId: venue.id,
@@ -91,7 +91,7 @@ export async function POST(request: Request) {
         })
       : null;
 
-    const updatedSubmission = updateSubmissionVerification({
+    const updatedSubmission = await updateSubmissionVerification({
       submissionId: submission.id,
       status: validation.approved ? "approved" : "rejected",
       result: validation,
@@ -99,10 +99,11 @@ export async function POST(request: Request) {
     });
 
     const socialPost = validation.approved
-      ? createSocialPost({
+      ? await createSocialPost({
           submissionId: submission.id,
           campaignId: campaign.id,
           venueId: venue.id,
+          description: validation.description,
           caption: captionWithHashtags(validation.caption, validation.hashtags),
         })
       : null;

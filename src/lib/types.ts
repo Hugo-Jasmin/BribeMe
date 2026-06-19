@@ -64,6 +64,7 @@ export type SocialPost = {
   submissionId: string;
   campaignId: string;
   venueId: string;
+  description: string;
   caption: string;
   channelsJson: string;
   status: SocialPostStatus;
@@ -81,6 +82,7 @@ export type VerificationResult = {
   safetyScore: number;
   decisionReason: string;
   observations: string[];
+  description: string;
   caption: string;
   hashtags: string[];
 };

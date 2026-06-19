@@ -1,6 +1,6 @@
 import { ScanLine, TicketCheck } from "lucide-react";
-import { AppCard, LinkButton, PageShell } from "@/components/bribeme/ui";
-import { LuminousRewardCard } from "@/components/bribeme/luminous-reward";
+import { AppCard, LinkButton, PageShell } from "@/components/bribe/ui";
+import { LuminousRewardCard } from "@/components/bribe/luminous-reward";
 import { ensureDemoData } from "@/lib/demo-data";
 import { getRewardByCode } from "@/lib/repositories";
 
@@ -12,8 +12,8 @@ export default async function PatronRewardPage({
   searchParams: Promise<{ code?: string }>;
 }) {
   const { code } = await searchParams;
-  const { venue } = ensureDemoData();
-  const reward = code ? getRewardByCode(code) : null;
+  const { venue } = await ensureDemoData();
+  const reward = code ? await getRewardByCode(code) : null;
 
   return (
     <PageShell

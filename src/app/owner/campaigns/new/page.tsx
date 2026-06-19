@@ -1,12 +1,12 @@
 import { Megaphone } from "lucide-react";
-import { AppCard, PageShell } from "@/components/bribeme/ui";
-import { CampaignForm } from "@/components/bribeme/forms";
+import { AppCard, PageShell } from "@/components/bribe/ui";
+import { CampaignForm } from "@/components/bribe/forms";
 import { ensureDemoData } from "@/lib/demo-data";
 
 export const dynamic = "force-dynamic";
 
-export default function NewCampaignPage() {
-  const { venue } = ensureDemoData();
+export default async function NewCampaignPage() {
+  const { venue } = await ensureDemoData();
 
   return (
     <PageShell

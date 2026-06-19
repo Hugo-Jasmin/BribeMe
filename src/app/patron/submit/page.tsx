@@ -1,6 +1,6 @@
 import { Camera } from "lucide-react";
-import { AppCard, PageShell } from "@/components/bribeme/ui";
-import { PatronSubmissionForm } from "@/components/bribeme/forms";
+import { AppCard, PageShell } from "@/components/bribe/ui";
+import { PatronSubmissionForm } from "@/components/bribe/forms";
 import { orderPatronCampaigns } from "@/lib/campaign-ordering";
 import { ensureDemoData } from "@/lib/demo-data";
 
@@ -12,7 +12,7 @@ export default async function PatronSubmitPage({
   searchParams: Promise<{ campaignId?: string }>;
 }) {
   const { campaignId } = await searchParams;
-  const { campaigns } = ensureDemoData();
+  const { campaigns } = await ensureDemoData();
   const activeCampaigns = orderPatronCampaigns(
     campaigns.filter((campaign) => campaign.status === "active"),
   );

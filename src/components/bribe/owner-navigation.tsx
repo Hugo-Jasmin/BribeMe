@@ -141,7 +141,7 @@ const staffLinks = [
   },
 ] as const;
 
-const campaignsOpenStorageKey = "bribeme-owner-campaigns-open";
+const campaignsOpenStorageKey = "bribe-owner-campaigns-open";
 
 export function OwnerSidebar({ data }: { data: OwnerNavigationData }) {
   return (
@@ -164,7 +164,7 @@ export function OwnerMobileNavigation({ data }: { data: OwnerNavigationData }) {
       </SheetTrigger>
       <SheetContent className="w-[320px] p-0" side="left">
         <SheetHeader className="border-b p-5 text-left">
-          <SheetTitle>BribeMe</SheetTitle>
+          <SheetTitle>Bribe</SheetTitle>
           <SheetDescription>{data.venueName} owner view</SheetDescription>
         </SheetHeader>
         <OwnerSidebarContent closeOnNavigate data={data} />
@@ -207,13 +207,6 @@ function OwnerSidebarContent({
             <Search />
             <span className="min-w-0 flex-1 text-left">Search workspace</span>
           </Button>
-          <NavLink
-            closeOnNavigate={closeOnNavigate}
-            href="/owner/campaigns/new"
-            icon={Plus}
-            label="New campaign"
-            variant="action"
-          />
         </div>
         <ScrollArea className="min-h-0 flex-1">
           <nav className="space-y-6 p-3">
@@ -306,11 +299,11 @@ function OwnerWorkspaceHeader({ data }: { data: OwnerNavigationData }) {
       <div className="flex items-center gap-2">
         <Link className="grid size-8 place-items-center rounded-md text-foreground hover:bg-background" href="/">
           <Store className="size-4" />
-          <span className="sr-only">BribeMe home</span>
+          <span className="sr-only">Bribe home</span>
         </Link>
         <div className="min-w-0 flex-1">
           <Link className="block truncate text-sm font-semibold hover:text-muted-foreground" href="/">
-            BribeMe
+            Bribe
           </Link>
           <p className="truncate text-xs text-muted-foreground">{data.venueName} owner view</p>
         </div>

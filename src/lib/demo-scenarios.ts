@@ -25,7 +25,7 @@ export const demoScenarios: DemoScenario[] = [
     format: "Post + story",
     channels: ["Instagram", "TikTok", "Facebook", "Google"],
     caption:
-      "Good company, full glasses, and a table worth settling into at BribeMe Demo Cafe.",
+      "Good company, full glasses, and a table worth settling into at Bribe Demo Cafe.",
   },
   {
     id: "coffee-croissant",

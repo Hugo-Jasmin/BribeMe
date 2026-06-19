@@ -1,16 +1,16 @@
 import { ClipboardCheck, QrCode, ScanLine } from "lucide-react";
-import { AppCard, LinkButton, PageShell } from "@/components/bribeme/ui";
+import { AppCard, LinkButton, PageShell } from "@/components/bribe/ui";
 import { ensureDemoData } from "@/lib/demo-data";
 
 export const dynamic = "force-dynamic";
 
-export default function Home() {
-  ensureDemoData();
+export default async function Home() {
+  await ensureDemoData();
 
   return (
     <PageShell
       role="home"
-      title="BribeMe"
+      title="Bribe"
       description="Choose the actual role surface. Patrons use the QR flow, owners run the desktop dashboard, and staff redeem rewards from a compact counter view."
     >
       <div className="grid gap-4 md:grid-cols-3">

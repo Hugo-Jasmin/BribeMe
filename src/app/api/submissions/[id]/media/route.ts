@@ -11,7 +11,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const submission = getSubmission(id);
+    const submission = await getSubmission(id);
     if (!submission) return json({ error: "Submission not found" }, { status: 404 });
 
     const demoPublicPath = getDemoPublicPathForStoredMedia(submission.mediaPath);

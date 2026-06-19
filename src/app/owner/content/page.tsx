@@ -1,15 +1,23 @@
 import { Download, Library, ShieldCheck } from "lucide-react";
-import { DeleteContentButton } from "@/components/bribeme/content-library-actions";
-import { AppCard, formatStatus, Metric, PageShell, PhotoPreview, Status } from "@/components/bribeme/ui";
+import { DeleteContentButton } from "@/components/bribe/content-library-actions";
+import { AppCard, formatStatus, Metric, PageShell, PhotoPreview, Status } from "@/components/bribe/ui";
 import { Button } from "@/components/ui/button";
 import { ensureDemoData } from "@/lib/demo-data";
 import { getCampaign } from "@/lib/repositories";
 
 export const dynamic = "force-dynamic";
 
-export default function ContentLibraryPage() {
-  const { submissions } = ensureDemoData();
+export default async function ContentLibraryPage() {
+  const { submissions } = await ensureDemoData();
   const approved = submissions.filter((submission) => submission.status === "approved");
+  const campaignsBySubmission = new Map(
+    await Promise.all(
+      approved.map(async (submission) => [
+        submission.id,
+        await getCampaign(submission.campaignId),
+      ] as const),
+    ),
+  );
 
   return (
     <PageShell
@@ -30,7 +38,7 @@ export default function ContentLibraryPage() {
         >
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {approved.map((submission) => {
-              const campaign = getCampaign(submission.campaignId);
+              const campaign = campaignsBySubmission.get(submission.id);
               return (
                 <div className="space-y-3 rounded-lg border p-3" key={submission.id}>
                   <PhotoPreview

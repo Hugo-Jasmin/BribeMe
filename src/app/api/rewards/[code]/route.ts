@@ -9,7 +9,7 @@ export async function GET(
 ) {
   try {
     const { code } = await params;
-    const reward = getRewardByCode(code);
+    const reward = await getRewardByCode(code);
     if (!reward) return json({ error: "Reward not found" }, { status: 404 });
     return json({ reward });
   } catch (error) {

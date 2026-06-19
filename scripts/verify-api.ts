@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { getDataDir } from "../src/lib/config";
 
-const baseUrl = process.env.BRIBEME_BASE_URL ?? "http://localhost:3000";
+const baseUrl = process.env.BRIBE_BASE_URL ?? "http://localhost:3000";
 
 main().catch((error) => {
   console.error(error);
@@ -16,8 +16,8 @@ async function main() {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      venueName: "BribeMe API Demo Cafe",
-      venueSlug: `bribeme-api-demo-${Date.now()}`,
+      venueName: "Bribe API Demo Cafe",
+      venueSlug: `bribe-api-demo-${Date.now()}`,
       title: "Next round on us",
       challengePrompt:
         "Take a clear photo of your friend group at the table with drinks visible.",

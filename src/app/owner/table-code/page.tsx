@@ -1,11 +1,11 @@
 import { ExternalLink, QrCode } from "lucide-react";
-import { AppCard, LinkButton, PageShell } from "@/components/bribeme/ui";
+import { AppCard, LinkButton, PageShell } from "@/components/bribe/ui";
 import { ensureDemoData } from "@/lib/demo-data";
 
 export const dynamic = "force-dynamic";
 
-export default function OwnerTableCodePage() {
-  const { venue, campaigns } = ensureDemoData();
+export default async function OwnerTableCodePage() {
+  const { venue, campaigns } = await ensureDemoData();
   const activeCampaigns = campaigns.filter((campaign) => campaign.status === "active");
 
   return (

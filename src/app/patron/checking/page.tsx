@@ -1,5 +1,5 @@
 import { Clock3 } from "lucide-react";
-import { AppCard, CheckLine, LinkButton, PageShell, PhotoPreview } from "@/components/bribeme/ui";
+import { AppCard, CheckLine, LinkButton, PageShell, PhotoPreview } from "@/components/bribe/ui";
 import { Progress } from "@/components/ui/progress";
 import { getSubmission } from "@/lib/repositories";
 
@@ -11,7 +11,7 @@ export default async function PatronCheckingPage({
   searchParams: Promise<{ submissionId?: string }>;
 }) {
   const { submissionId } = await searchParams;
-  const submission = submissionId ? getSubmission(submissionId) : null;
+  const submission = submissionId ? await getSubmission(submissionId) : null;
   const done = submission?.status === "approved" || submission?.status === "rejected";
   const mediaSrc = submission ? `/api/submissions/${submission.id}/media` : undefined;
 
