@@ -21,6 +21,7 @@ export async function closeDbForTests() {
 
 async function initializeDb() {
   const config = getDatabaseConfig();
+  console.log("[db] connecting to:", config.url, "| token set:", !!config.authToken);
   if (config.url.startsWith("file:")) {
     fs.mkdirSync(path.dirname(config.url.slice("file:".length)), { recursive: true });
   }
