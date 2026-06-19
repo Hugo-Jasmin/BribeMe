@@ -11,9 +11,11 @@ if (!command) {
 }
 
 function runWithPath(binDir) {
+  const localBin = join(dirname(new URL(import.meta.url).pathname), "..", "node_modules", ".bin");
+  const sep = process.platform === "win32" ? ";" : ":";
   const env = {
     ...process.env,
-    PATH: `${binDir}${process.env.PATH ? `:${process.env.PATH}` : ""}`,
+    PATH: `${binDir}${sep}${localBin}${process.env.PATH ? `${sep}${process.env.PATH}` : ""}`,
   };
 
   const child = spawn(command, args, {
